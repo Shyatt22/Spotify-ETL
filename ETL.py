@@ -10,8 +10,10 @@ import spotipy
 import random
 from Setup import Auth
 
+#SQLite DB setup
 DATABASE_LOCATION = "sqlite:///top10.sqlite"
 
+#Data validation function to check for important possible trasnformations
 def check_if_valid_data(df: pd.DataFrame)->bool:
     if df.empty:
         print('No songs downloaded. Finishing execution.')
@@ -27,26 +29,28 @@ def check_if_valid_data(df: pd.DataFrame)->bool:
 
 
 def main():
-
+    #Extracts authorized data into this file
     listen_data=Auth.results
     user_data=Auth.user
-
+    
+    #Takes the ID value from user data
     user_id=(user_data['id'])
-
+    
     user_id_list=[]
     song_names=[]
     artist_names=[]
     played_at_list=[]
     timestamps=[]
 
+    #Brings relevant data into lists
     for song in listen_data["items"]:
         user_id_list.append(user_id)
         song_names.append(song["track"]["name"])
         artist_names.append(song["track"]["album"]["artists"][0]["name"])
         played_at_list.append(song["played_at"])
         timestamps.append(song["played_at"][0:10])
-
-
+        
+    #Collects lists into a dictionary
     song_dict={
         "user_id":user_id_list,
         "song_name":song_names,
@@ -55,17 +59,21 @@ def main():
         "timestamp":timestamps
     }
 
+    #Creates a Pandas dataframe to get data into a tabular format 
     song_df=pd.DataFrame(song_dict,columns=["user_id","song_name","artist_name","played_at","timestamp"])
-
+    
     print(song_df)
-
+    
+    #Checks if data needs to be further processed per conditions of data validation function
     if check_if_valid_data(song_df):
         print('Data is valid.')
 
+    #SQLite setup for data loading
     engine=sqlalchemy.create_engine(DATABASE_LOCATION)
     dbconnect=sqlite3.connect('top10.sqlite')
     cursor=dbconnect.cursor()
-
+    
+    #Creates table for data
     user_song_table='''
     CREATE TABLE IF NOT EXISTS top10(
         user_id INT(11),
@@ -76,7 +84,8 @@ def main():
         CONSTRAINT primary_key_constraint PRIMARY KEY (played_at)
         ); 
     '''
-
+    
+    #Does data loading
     cursor.execute(user_song_table)
     print("table creation successful")
 
